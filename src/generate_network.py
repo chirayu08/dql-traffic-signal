@@ -1,0 +1,71 @@
+import os
+
+xml = """<?xml version="1.0" encoding="UTF-8"?>
+<net version="1.16" junctionCornerDetail="5" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
+    <location netOffset="0.00,0.00" convBoundary="-510.00,-510.00,510.00,510.00" origBoundary="-510.00,-510.00,510.00,510.00" projParameter="!"/>
+    <edge id="N2TL" from="N" to="TL" priority="1">
+        <lane id="N2TL_0" index="0" speed="13.89" length="500.00" shape="1.60,510.00 1.60,11.00"/>
+        <lane id="N2TL_1" index="1" speed="13.89" length="500.00" shape="-1.60,510.00 -1.60,11.00"/>
+    </edge>
+    <edge id="S2TL" from="S" to="TL" priority="1">
+        <lane id="S2TL_0" index="0" speed="13.89" length="500.00" shape="-1.60,-510.00 -1.60,-11.00"/>
+        <lane id="S2TL_1" index="1" speed="13.89" length="500.00" shape="1.60,-510.00 1.60,-11.00"/>
+    </edge>
+    <edge id="E2TL" from="E" to="TL" priority="1">
+        <lane id="E2TL_0" index="0" speed="13.89" length="500.00" shape="510.00,-1.60 11.00,-1.60"/>
+        <lane id="E2TL_1" index="1" speed="13.89" length="500.00" shape="510.00,1.60 11.00,1.60"/>
+    </edge>
+    <edge id="W2TL" from="W" to="TL" priority="1">
+        <lane id="W2TL_0" index="0" speed="13.89" length="500.00" shape="-510.00,1.60 -11.00,1.60"/>
+        <lane id="W2TL_1" index="1" speed="13.89" length="500.00" shape="-510.00,-1.60 -11.00,-1.60"/>
+    </edge>
+    <edge id="TL2N" from="TL" to="N" priority="1">
+        <lane id="TL2N_0" index="0" speed="13.89" length="500.00" shape="-1.60,11.00 -1.60,510.00"/>
+        <lane id="TL2N_1" index="1" speed="13.89" length="500.00" shape="1.60,11.00 1.60,510.00"/>
+    </edge>
+    <edge id="TL2S" from="TL" to="S" priority="1">
+        <lane id="TL2S_0" index="0" speed="13.89" length="500.00" shape="1.60,-11.00 1.60,-510.00"/>
+        <lane id="TL2S_1" index="1" speed="13.89" length="500.00" shape="-1.60,-11.00 -1.60,-510.00"/>
+    </edge>
+    <edge id="TL2E" from="TL" to="E" priority="1">
+        <lane id="TL2E_0" index="0" speed="13.89" length="500.00" shape="11.00,1.60 510.00,1.60"/>
+        <lane id="TL2E_1" index="1" speed="13.89" length="500.00" shape="11.00,-1.60 510.00,-1.60"/>
+    </edge>
+    <edge id="TL2W" from="TL" to="W" priority="1">
+        <lane id="TL2W_0" index="0" speed="13.89" length="500.00" shape="-11.00,-1.60 -510.00,-1.60"/>
+        <lane id="TL2W_1" index="1" speed="13.89" length="500.00" shape="-11.00,1.60 -510.00,1.60"/>
+    </edge>
+    <junction id="N" type="dead_end" x="0.00" y="510.00" incLanes="TL2N_0 TL2N_1" intLanes="" shape="-3.20,510.00 3.20,510.00"/>
+    <junction id="S" type="dead_end" x="0.00" y="-510.00" incLanes="TL2S_0 TL2S_1" intLanes="" shape="3.20,-510.00 -3.20,-510.00"/>
+    <junction id="E" type="dead_end" x="510.00" y="0.00" incLanes="TL2E_0 TL2E_1" intLanes="" shape="510.00,3.20 510.00,-3.20"/>
+    <junction id="W" type="dead_end" x="-510.00" y="0.00" incLanes="TL2W_0 TL2W_1" intLanes="" shape="-510.00,-3.20 -510.00,3.20"/>
+    <junction id="TL" type="traffic_light" x="0.00" y="0.00" incLanes="W2TL_0 W2TL_1 N2TL_0 N2TL_1 E2TL_0 E2TL_1 S2TL_0 S2TL_1" intLanes="" shape="-11.00,11.00 11.00,11.00 11.00,-11.00 -11.00,-11.00">
+        <request index="0" response="00000000" foes="00000000" cont="0"/>
+        <request index="1" response="00000000" foes="00000000" cont="0"/>
+        <request index="2" response="00000000" foes="00000000" cont="0"/>
+        <request index="3" response="00000000" foes="00000000" cont="0"/>
+        <request index="4" response="00000000" foes="00000000" cont="0"/>
+        <request index="5" response="00000000" foes="00000000" cont="0"/>
+        <request index="6" response="00000000" foes="00000000" cont="0"/>
+        <request index="7" response="00000000" foes="00000000" cont="0"/>
+    </junction>
+    <tlLogic id="TL" type="static" programID="0" offset="0">
+        <phase duration="31" state="GGrrGGrr"/>
+        <phase duration="6"  state="yyrryyrr"/>
+        <phase duration="31" state="rrGGrrGG"/>
+        <phase duration="6"  state="rryyrryy"/>
+    </tlLogic>
+    <connection from="W2TL" to="TL2E" fromLane="0" toLane="0" tl="TL" linkIndex="0" dir="s" state="o"/>
+    <connection from="W2TL" to="TL2N" fromLane="1" toLane="0" tl="TL" linkIndex="1" dir="l" state="o"/>
+    <connection from="N2TL" to="TL2S" fromLane="0" toLane="0" tl="TL" linkIndex="2" dir="s" state="o"/>
+    <connection from="N2TL" to="TL2E" fromLane="1" toLane="0" tl="TL" linkIndex="3" dir="r" state="o"/>
+    <connection from="E2TL" to="TL2W" fromLane="0" toLane="0" tl="TL" linkIndex="4" dir="s" state="o"/>
+    <connection from="E2TL" to="TL2S" fromLane="1" toLane="0" tl="TL" linkIndex="5" dir="l" state="o"/>
+    <connection from="S2TL" to="TL2N" fromLane="0" toLane="0" tl="TL" linkIndex="6" dir="s" state="o"/>
+    <connection from="S2TL" to="TL2W" fromLane="1" toLane="0" tl="TL" linkIndex="7" dir="r" state="o"/>
+</net>"""
+
+os.makedirs("intersection", exist_ok=True)
+with open("intersection/environment.net.xml", "w") as f:
+    f.write(xml)
+print("Done. Network file written successfully.")
