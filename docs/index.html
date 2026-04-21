@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DQL Traffic Signal Control</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,sans-serif;background:#0f1117;color:#e0e0e0;line-height:1.6}
+    header{background:#161b22;border-bottom:1px solid #30363d;padding:20px 40px}
+    header h1{font-size:22px;font-weight:600;color:#fff}
+    header p{font-size:13px;color:#8b949e;margin-top:4px}
+    main{max-width:900px;margin:0 auto;padding:40px 20px}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px}
+    .metric{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;text-align:center}
+    .metric .val{font-size:32px;font-weight:700;color:#3fb950}
+    .metric .lbl{font-size:13px;color:#8b949e;margin-top:4px}
+    h2{font-size:18px;font-weight:600;color:#fff;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #30363d}
+    .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:40px}
+    .chart-card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px}
+    .chart-card p{font-size:12px;color:#8b949e;margin-bottom:10px}
+    .chart-card img{width:100%;border-radius:8px;display:block}
+    table{width:100%;border-collapse:collapse;background:#161b22;border-radius:12px;overflow:hidden;border:1px solid #30363d;margin-bottom:40px}
+    th{background:#21262d;padding:12px 16px;font-size:13px;color:#8b949e;text-align:left}
+    td{padding:12px 16px;font-size:13px;border-top:1px solid #30363d}
+    .good{color:#3fb950;font-weight:600}
+    .arch{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:40px}
+    .arch pre{background:#0d1117;border-radius:8px;padding:16px;font-size:12px;color:#e0e0e0;overflow-x:auto}
+    a{color:#58a6ff}
+    footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1px solid #21262d;margin-top:48px}
+    @media(max-width:600px){.metrics,.charts{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>DQL Traffic Signal Control</h1>
+  <p>Deep Q-Learning · SUMO Simulation · PyTorch</p>
+</header>
+<main>
+  <div class="metrics">
+    <div class="metric"><div class="val">35%</div><div class="lbl">Reduction in avg wait</div></div>
+    <div class="metric"><div class="val">100</div><div class="lbl">Training episodes</div></div>
+    <div class="metric"><div class="val">80</div><div class="lbl">State dimensions</div></div>
+  </div>
+
+  <h2>Training results</h2>
+  <div class="charts">
+    <div class="chart-card">
+      <p>Cumulative waiting time per episode</p>
+      <img src="assets/waiting_time.png" alt="Waiting time curve">
+    </div>
+    <div class="chart-card">
+      <p>DQN training loss</p>
+      <img src="assets/loss.png" alt="Loss curve">
+    </div>
+  </div>
+
+  <h2>Comparison with baseline</h2>
+  <table>
+    <tr><th>Method</th><th>Avg wait (s)</th><th>Improvement</th></tr>
+    <tr><td>Fixed-time control</td><td>96,000</td><td>—</td></tr>
+    <tr><td>DQL agent (ours)</td><td class="good">63,000</td><td class="good">~35%</td></tr>
+  </table>
+
+  <h2>Model architecture</h2>
+  <div class="arch">
+    <pre>Input (80)  →  Linear(400) + ReLU
+             →  Linear(400) + ReLU
+             →  Linear(4)   [Q-values per phase]</pre>
+  </div>
+
+  <h2>Links</h2>
+  <p><a href="https://github.com/chirayu08/dql-traffic-signal">View source code on GitHub</a></p>
+</main>
+<footer>Built with PyTorch + SUMO · chirayu08 · 2026</footer>
+</body>
+</html>
