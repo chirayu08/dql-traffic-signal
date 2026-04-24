@@ -1,9 +1,7 @@
 # dql-traffic-signal
 
 A Deep Q-Network agent that learns to control traffic lights — trained entirely inside SUMO without ever touching real hardware.
-
 ---
-
 ## What this does
 
 Fixed-time traffic lights are dumb. They run the same cycle whether there are 3 cars or 300. This project replaces that with a DQN agent that watches stopped vehicles across 8 approach lanes and decides which phase to run next — adapting in real time to whatever traffic shows up.
@@ -150,23 +148,5 @@ dql-traffic-signal/
 - [ ] Transfer to real-world loop detector data
 
 ---
-
-## Citation
-
-If you use this in your work:
-
-```bibtex
-@misc{dql-traffic-signal,
-  title   = {Deep Q-Learning Agent for Adaptive Traffic Signal Control Using SUMO},
-  year    = {2024},
-  url     = {https://github.com/chirayu08/dql-traffic-signal}
-}
-```
-
-Primary reference this builds on: Vidali et al., *A deep reinforcement learning approach to adaptive traffic signals management*, AI*IA Workshop IAS-UrbMob, 2019.
-
----
-
 ## License
-
 MIT
