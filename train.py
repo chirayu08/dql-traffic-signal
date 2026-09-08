@@ -74,7 +74,18 @@ for ep in range(1, EPISODES + 1):
         next_states= [s[3] for s in batch]
 
         q_now  = model.predict_batch(states)
-        q_next = model.predict_batch(next_states)
+        q_next = target_model.predict_batch(next_states)
+
+targets = q_now.copy()
+
+for i in range(len(batch)):
+    targets[i][actions[i]] = rewards[i] + GAMMA * max(q_next[i])
+
+loss = model.train_batch(states, targets)
+losses.append(loss)
+        if ep % TARGET_UPDATE_FREQUENCY == 0:
+            target_model.copy_weights_from(model)
+            print(f"Target network updated at episode {ep}")
 
         targets = q_now.copy()
         for i in range(len(batch)):
