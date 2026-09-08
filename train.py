@@ -1,4 +1,5 @@
 import sys, os
+import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from model import DQN
@@ -22,6 +23,7 @@ BATCH_SIZE     = 100
 EPSILON_START  = 1.0
 EPSILON_END    = 0.01
 EPSILON_DECAY  = 400
+TARGET_UPDATE_FREQUENCY = 10
 
 if "SUMO_HOME" not in os.environ:
     raise EnvironmentError("SUMO_HOME not set. Add it to your environment variables.")
@@ -37,8 +39,16 @@ SUMO_CMD = [
 ]
 
 # ── Init ─────────────────────────────────────────────────
-model     = DQN(NUM_STATES, NUM_ACTIONS, LR)
-memory    = Memory(MEMORY_SIZE)
+# Policy network
+model = DQN(NUM_STATES, NUM_ACTIONS, LR)
+
+# Target network
+target_model = DQN(NUM_STATES, NUM_ACTIONS, LR)
+
+# Initially synchronize target network with policy network
+target_model.copy_weights_from(model)
+
+memory = Memory(MEMORY_SIZE)
 generator = TrafficGenerator(MAX_STEPS, N_CARS)
 sim       = Simulation(model, memory, generator, SUMO_CMD,
                        MAX_STEPS, GREEN_DUR, YELLOW_DUR,
