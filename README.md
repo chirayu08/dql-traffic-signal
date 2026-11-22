@@ -36,7 +36,7 @@ Deep Q-Learning Agent for Adaptive Traffic Signal Control Using SUMO Microscopic
 
 ### Certificate of Presentation & Publication
 
-**[View ASIT-2026 Conference Certificate](./docs/assets/ASIT_2026_Certificate.jpg)**
+**[View ASIT-2026 Conference Certificate](./docs/assets/ASIT_2026_Certificate.jpeg)**
 
 The paper presents the target-network DQN methodology, simulation environment, state/action/reward formulation, experimental configuration, baseline comparisons, training analysis, limitations, and future research directions.
 
