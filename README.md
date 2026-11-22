@@ -1,31 +1,48 @@
-[README.md](https://github.com/user-attachments/files/31129932/README.md)
-
-# Deep Q-Learning Agent for Adaptive Traffic Signal Control Using SUMO
+Deep Q-Learning Agent for Adaptive Traffic Signal Control Using SUMO
 
 [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.11-ee4c2c.svg)](https://pytorch.org/)
 [![SUMO](https://img.shields.io/badge/SUMO-1.26.0-green.svg)](https://eclipse.dev/sumo/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Conference](https://img.shields.io/badge/Conference-ASIT--2026-success.svg)](https://icasit.thehinweis.com/2026/)
 
 A Deep Q-Network (DQN) based reinforcement learning system for **adaptive traffic signal control** at a single 4-way intersection using the **SUMO microscopic traffic simulator** and the **TraCI Python API**.
 
 The system learns signal-control policies from simulated traffic conditions and dynamically selects traffic-light phases with the objective of reducing cumulative vehicle waiting time.
 
-> **Research result:** After 100 training episodes, the DQL agent achieved a **34.4% reduction in average vehicle waiting time** compared with the fixed-time baseline reported in the accompanying paper.
+> **Research result:** After 400 training episodes, the proposed DQN agent achieved a **76.2% reduction in cumulative waiting time compared with the fixed-time baseline** and a **44.7% reduction compared with the gap-based actuated controller**, evaluated over 10 held-out traffic seeds.
 
 ---
 
-##  Research Paper
+## Research Paper
 
-The complete research paper is included in this repository:
+The research paper associated with this project was presented at the **Hinweis Fifth International Conference on Advances in Software Engineering and Information Technology (ASIT-2026)**.
 
-**[Deep Q-Learning Agent for Adaptive Traffic Signal Control Using SUMO Microscopic Simulation](./paper/Deep_Q_Learning_Adaptive_Traffic_Signal_Control.pdf)**
+**Paper Title:**
 
-The paper describes the methodology, environment, state/action/reward formulation, DQN architecture, training procedure, experimental results, limitations, and future research directions. fileciteturn0file0L2-L22
+Deep Q-Learning Agent for Adaptive Traffic Signal Control Using SUMO Microscopic Simulation
+
+**Conference Details:**
+
+- Conference: ASIT-2026
+- Conference Organizer: Hinweis Research
+- Presentation Date: September 27, 2026
+- Institution: VIT-AP University, Amaravathi, Andhra Pradesh, India
+- Research Area: Deep Reinforcement Learning and Intelligent Traffic Signal Control
+
+### Published Research Paper
+
+**[Read the Full Research Paper (PDF)](./paper/Deep_Q_Learning_Adaptive_Traffic_Signal_Control.pdf)**
+
+### Certificate of Presentation & Publication
+
+**[View ASIT-2026 Conference Certificate](./docs/assets/ASIT_2026_Certificate.jpg)**
+
+The paper presents the target-network DQN methodology, simulation environment, state/action/reward formulation, experimental configuration, baseline comparisons, training analysis, limitations, and future research directions.
 
 ---
 
-##  Overview
+## Overview
 
 Traditional fixed-time traffic signal controllers operate according to predefined cycles and do not respond effectively to changing traffic demand. This project applies **model-free reinforcement learning** to traffic signal control.
 
@@ -33,41 +50,52 @@ The DQN agent interacts with a SUMO simulation environment through TraCI:
 
 ```text
 Traffic Simulation (SUMO)
-          │
-          ▼
-     Traffic State
-   80-dimensional vector
-          │
-          ▼
-       DQN Agent
-          │
-          ▼
-    Signal Phase Action
-          │
-          ▼
-     SUMO Traffic Light
-          │
-          ▼
-      Reward Signal
-          │
-          └──────────────► Agent learns
+         |
+         v
+    Traffic State
+  80-dimensional vector
+         |
+         v
+      DQN Agent
+         |
+         v
+   Signal Phase Action
+         |
+         v
+    SUMO Traffic Light
+         |
+         v
+     Reward Signal
+         |
+         v
+ Experience Replay Buffer
+         |
+         v
+   Update Online Network
+         |
+         v
+ Synchronize Target Network
+         |
+         └──────────────> Agent learns
 ```
 
-The paper uses an 80-dimensional binary representation of stopped-vehicle positions across eight incoming lanes and four discrete traffic-signal actions. fileciteturn0file0L165-L186
+The paper uses an 80-dimensional binary representation of stopped-vehicle positions across eight incoming lanes and four discrete traffic-signal actions.
 
 ---
 
-##  Objectives
+## Objectives
 
 - Develop an adaptive traffic signal controller using Deep Q-Learning.
 - Reduce cumulative vehicle waiting time.
 - Enable the controller to respond to stochastic traffic demand.
 - Train and evaluate the agent safely in a microscopic traffic simulation.
+- Improve training stability using experience replay and a periodically synchronized target network.
+- Compare the proposed controller against fixed-time and gap-based actuated traffic controllers.
 - Provide a reproducible research implementation for further experimentation.
 
 ---
 
-##  Methodology
+## Methodology
 
 ### 1. Traffic Environment
 
@@ -75,14 +103,15 @@ The environment is implemented using **SUMO (Simulation of Urban MObility)**.
 
 The simulated network contains:
 
-- One 4-way intersection
-- Four incoming approaches
-- Two lanes per incoming approach
-- Four traffic signal phases
-- Stochastically generated vehicle traffic
-- 90-minute simulation episodes
+- One 4-way intersection.
+- Four incoming approaches.
+- Two lanes per incoming approach.
+- Four traffic signal phases.
+- Stochastically generated vehicle traffic.
+- 90-minute simulation episodes.
+- 1,000 vehicles per training episode.
 
-SUMO and TraCI provide bidirectional communication between the reinforcement learning agent and the traffic simulation. fileciteturn0file0L126-L140
+SUMO and TraCI provide bidirectional communication between the reinforcement learning agent and the traffic simulation.
 
 ### 2. State Representation
 
@@ -90,10 +119,12 @@ The agent receives an **80-dimensional binary state vector**.
 
 Each of the eight incoming lanes is divided into ten road cells. A cell is assigned:
 
-- `1` → a stationary vehicle is present
-- `0` → no stationary vehicle is present
+- `1` → A stationary vehicle is present.
+- `0` → No stationary vehicle is present.
 
-This allows the agent to identify queue formation and congestion near the intersection. fileciteturn0file0L165-L179
+A vehicle is considered stationary when its speed is below the defined threshold.
+
+This allows the agent to identify queue formation and congestion near the intersection.
 
 ### 3. Action Space
 
@@ -106,7 +137,7 @@ The agent chooses between four discrete signal phases:
 | `2` | EW Green | East-West traffic receives green |
 | `3` | EW Yellow | East-West clearing phase |
 
-A 4-second yellow transition is inserted when switching phases, followed by a 10-second green phase. fileciteturn0file0L141-L151 fileciteturn0file0L180-L186
+A 4-second yellow transition is inserted when switching phases, followed by a 10-second decision interval.
 
 ### 4. Reward Function
 
@@ -116,40 +147,40 @@ The reward is based on the change in cumulative vehicle waiting time:
 rₜ = Wₜ₋₁ − Wₜ
 ```
 
-where `Wₜ` represents the cumulative waiting time of active vehicles.
+Where `Wₜ` represents the cumulative waiting time of active vehicles.
 
 Therefore:
 
-- Waiting time decreases → positive reward
-- Waiting time increases → negative reward
+- Waiting time decreases → Positive reward.
+- Waiting time increases → Negative reward.
 
-This directly aligns the learning objective with traffic-delay reduction. fileciteturn0file0L187-L199
+This directly aligns the learning objective with traffic-delay reduction.
 
 ---
 
-##  DQN Architecture
+## DQN Architecture
 
 The DQN maps the 80-dimensional traffic state to four Q-values.
 
 ```text
 Input
-  80 neurons
-     │
-     ▼
+ 80 neurons
+    |
+    v
 Dense Layer
-  400 neurons
-     │
-    ReLU
-     │
-     ▼
+ 400 neurons
+    |
+   ReLU
+    |
+    v
 Dense Layer
-  400 neurons
-     │
-    ReLU
-     │
-     ▼
+ 400 neurons
+    |
+   ReLU
+    |
+    v
 Output Layer
-  4 Q-values
+ 4 Q-values
 ```
 
 The network uses:
@@ -161,58 +192,89 @@ The network uses:
 - **Replay memory:** 50,000 transitions
 - **Batch size:** 100
 
-The reported implementation does not use a target network, which contributes to the observed training-loss instability. fileciteturn0file0L200-L227
+### Target Network
+
+Unlike the earlier implementation, the updated DQN includes a separate target network.
+
+The target network is a periodically synchronized copy of the online Q-network.
+
+- Online network: Learns and updates its parameters.
+- Target network: Provides more stable Bellman target values.
+- Synchronization: Every 5 training episodes.
+
+The target network reduces the moving-target problem during Q-learning and is associated with substantially lower loss-spike instability in the reported training run.
+
+### Experience Replay
+
+A circular replay buffer stores transitions:
+
+`(state, action, reward, next_state)`
+
+After collecting sufficient experience, random mini-batches of 100 transitions are sampled from the buffer for gradient updates.
+
+This reduces temporal correlation between consecutive experiences and improves training stability.
 
 ---
 
-##  Reinforcement Learning Pipeline
+## Reinforcement Learning Pipeline
 
 ```text
-Initialize DQN
-      │
-      ▼
+Initialize Online DQN
+         |
+         v
+Initialize Target Network
+         |
+         v
 Start SUMO Episode
-      │
-      ▼
+         |
+         v
 Observe 80-D State
-      │
-      ▼
-ε-Greedy Action Selection
-      │
-      ▼
+         |
+         v
+Epsilon-Greedy Action Selection
+         |
+         v
 Apply Traffic Signal Action
-      │
-      ▼
+         |
+         v
 Advance SUMO Simulation
-      │
-      ▼
+         |
+         v
 Calculate Waiting-Time Reward
-      │
-      ▼
+         |
+         v
 Store Transition in Replay Buffer
-      │
-      ▼
+         |
+         v
 Sample Mini-Batch
-      │
-      ▼
-Update DQN
-      │
-      ▼
+         |
+         v
+Calculate Target Q-Values
+         |
+         v
+Update Online DQN
+         |
+         v
+Synchronize Target Network
+         |
+         v
 Repeat Until Episode Ends
-      │
-      ▼
+         |
+         v
 Start Next Episode
 ```
 
-The agent uses epsilon-greedy exploration, with epsilon decaying from `1.0` toward `0.01` over a 400-episode horizon. fileciteturn0file0L228-L240
+The agent uses epsilon-greedy exploration, with epsilon decaying linearly from `1.0` toward `0.01` over 400 episodes.
+
+The target network is synchronized every five episodes.
 
 ---
 
-##  Experimental Configuration
+## Experimental Configuration
 
 | Parameter | Value |
 |---|---:|
-| Training episodes | 100 |
+| Training episodes | 400 |
 | Simulation duration | 5,400 s (90 min) |
 | Vehicles per episode | 1,000 |
 | State size | 80 |
@@ -227,37 +289,53 @@ The agent uses epsilon-greedy exploration, with epsilon decaying from `1.0` towa
 | Initial ε | 1.0 |
 | Final ε | 0.01 |
 | ε decay horizon | 400 episodes |
+| Target network synchronization | Every 5 episodes |
 | Hidden layers | 2 × 400 |
 | Activation | ReLU |
 
-These values correspond to the experimental configuration reported in the paper. fileciteturn0file0L241-L273
+These values correspond to the updated experimental configuration reported in the research paper.
 
 ---
 
-##  Results
+## Results
 
-The DQL controller was compared against a fixed-time traffic signal controller over ten random seeds.
+The DQL controller was compared against two non-learning traffic signal controllers over ten held-out traffic seeds.
 
-| Method | Average Waiting Time | Standard Deviation | Improvement |
-|---|---:|---:|---:|
-| Fixed-Time Controller | ~95,000 s | ±15,000 s | Baseline |
-| **DQL Agent** | **~63,000 s** | **±8,200 s** | **34.4% reduction** |
+### Performance Comparison
 
-The DQL agent reduced average vehicle waiting time by **34.4%** and also showed lower variability across traffic-demand seeds. fileciteturn0file0L300-L314
+| Method | Mean Cumulative Waiting Time | Standard Deviation |
+|---|---:|---:|
+| Fixed-Time Controller | 67,613 s | ±3,008 s |
+| Gap-Based Actuated Controller | 29,070 s | ±691 s |
+| **DQL Agent** | **16,076 s** | **±687 s** |
+
+### Performance Improvements
+
+| Comparison | Waiting-Time Reduction |
+|---|---:|
+| DQL vs Fixed-Time | **76.2%** |
+| DQL vs Actuated | **44.7%** |
+| Actuated vs Fixed-Time | 57.0% |
+
+The proposed DQL agent achieved the lowest mean cumulative waiting time among the three controllers.
+
+The comparison against the actuated controller is particularly important because it demonstrates an improvement over a demand-responsive, non-learning traffic control approach.
 
 ### Training Behaviour
 
-The reported training curve shows three broad phases:
+The updated paper analyses three major training indicators:
 
-1. **Episodes 1–40 — Exploration:** predominantly random actions due to high epsilon.
-2. **Episodes 40–65 — Transition:** Q-values begin influencing decisions, with temporary instability.
-3. **Episodes 65–100 — Improvement:** the moving average of waiting time decreases as the policy improves.
+1. **Cumulative Waiting Time:** The 10-episode moving average decreases from approximately 85,000–100,000 seconds during early exploration to approximately 15,000–18,000 seconds by the end of training.
 
-The paper reports that the 10-episode moving average decreases from approximately 95,000 s to 52,000 s during the final training phase. fileciteturn0file0L243-L278
+2. **Cumulative Reward:** The 10-episode moving average improves from approximately -10,000 to approximately -2,100 by episode 400.
+
+3. **Training Loss:** The MSE loss decreases from an early range of approximately 1,500–3,500 to below 200 by episode 300, with progressively smaller fluctuations.
+
+The results indicate smoother training behaviour with the target network enabled.
 
 ---
 
-##  Technology Stack
+## Technology Stack
 
 | Technology | Purpose |
 |---|---|
@@ -268,47 +346,41 @@ The paper reports that the 10-episode moving average decreases from approximatel
 | **NumPy 1.24** | Numerical computation |
 | **Matplotlib 3.7** | Training and result visualization |
 
-The software versions are specified in the paper's implementation description. fileciteturn0file0L160-L164
-
 ---
 
-##  Suggested Repository Structure
+## Repository Structure
 
 ```text
 dql-traffic-signal/
 │
 ├── README.md
 ├── LICENSE
-├── requirements.txt
 │
 ├── paper/
 │   └── Deep_Q_Learning_Adaptive_Traffic_Signal_Control.pdf
 │
+├── docs/
+│   └── assets/
+│       └── ASIT_2026_Certificate.jpg
+│
+├── intersection/
+│
 ├── src/
-│   ├── agent.py
-│   ├── generator.py
-│   ├── model.py
-│   ├── environment.py
-│   └── train.py
 │
-├── sumo/
-│   ├── network/
-│   ├── routes/
-│   └── configuration/
+├── plots/
 │
-├── results/
-│   ├── waiting_time.png
-│   ├── reward.png
-│   └── training_loss.png
+├── train.py
+├── test.py
+├── test_setup.py
 │
 └── requirements.txt
 ```
 
-Adjust the source-file names above to match the actual files in the repository.
+The folder structure above represents the intended organization. Refer to the actual repository files for the current implementation.
 
 ---
 
-##  Installation
+## Installation
 
 ### Prerequisites
 
@@ -351,115 +423,140 @@ source .venv/bin/activate
 ### Install Python Dependencies
 
 ```bash
+pip install torch numpy matplotlib
+```
+
+SUMO must be installed separately, and the `SUMO_HOME` environment variable must be configured so that the TraCI Python package is accessible.
+
+If a `requirements.txt` file is available, dependencies can also be installed using:
+
+```bash
 pip install -r requirements.txt
 ```
 
-If `requirements.txt` is not yet present, the paper specifies the primary software dependencies as PyTorch, NumPy, and Matplotlib, with SUMO/TraCI required for simulation. fileciteturn0file0L160-L164
-
 ---
 
-##  Running the Project
+## Running the Project
 
 After installing SUMO and the Python dependencies:
+
+### 1. Test the Setup
+
+```bash
+python test_setup.py
+```
+
+### 2. Train the Agent
 
 ```bash
 python train.py
 ```
 
-The training process should:
+The training process:
 
-1. Generate traffic routes.
-2. Start the SUMO simulation.
-3. Collect the current traffic state.
-4. Select a signal phase using the DQN policy.
-5. Execute the action through TraCI.
-6. Calculate the waiting-time reward.
-7. Store the transition in replay memory.
-8. Train the neural network from sampled experiences.
-9. Record training metrics.
+1. Generates traffic routes.
+2. Starts the SUMO simulation.
+3. Collects the current traffic state.
+4. Selects a signal phase using the DQN policy.
+5. Executes the action through TraCI.
+6. Calculates the waiting-time reward.
+7. Stores the transition in replay memory.
+8. Updates the online neural network.
+9. Synchronizes the target network periodically.
+10. Records training metrics.
 
-Use the actual entry-point filename from the repository if it differs from `train.py`.
+### 3. Evaluate the Agent
+
+```bash
+python test.py
+```
+
+Use the trained model and evaluation configuration expected by the repository.
 
 ---
 
-##  Evaluation
+## Evaluation
 
 The primary performance metric is **cumulative vehicle waiting time**.
 
-Additional metrics used in the paper include:
+Additional metrics analysed in the paper include:
 
-- Cumulative reward
-- DQN training loss
-- Moving average waiting time
-- Standard deviation across traffic seeds
+- Cumulative reward.
+- DQN training loss.
+- Moving average waiting time.
+- Standard deviation across held-out traffic seeds.
 
-The accompanying paper analyses all three training curves and compares the learned policy with a fixed-time baseline. fileciteturn0file0L279-L314
+The evaluation uses ten held-out seeds (9001–9010), separate from the 400 training-episode seeds.
+
+This helps assess how the learned policy performs under traffic conditions not used during training.
 
 ---
 
-##  Limitations
+## Limitations
 
 The current research implementation has several limitations:
 
-- The experiment focuses on a **single isolated intersection**.
-- The DQN does not use a target network.
-- The state representation does not explicitly include the current signal phase or elapsed phase time.
-- Evaluation is performed entirely in simulation.
-- At the end of the reported 100 episodes, epsilon remains around `0.75`, meaning substantial exploration is still occurring.
+- The experiment covers only a **single isolated intersection**.
+- The state representation does not explicitly encode the current signal phase or elapsed phase time.
+- Evaluation is conducted entirely within SUMO simulation.
+- Results are reported from a single training run.
+- Real-world deployment requires additional sensor validation, robustness testing, and fail-safe mechanisms.
 
-These limitations are identified in the paper and motivate the proposed future improvements. fileciteturn0file0L315-L335
+The standard deviations reported across ten evaluation seeds represent test-time traffic variability, not variation across independently trained models.
 
 ---
 
-##  Future Work
+## Future Work
 
 Planned extensions include:
 
 1. **Double DQN** to reduce Q-value overestimation.
-2. **Dueling DQN** for improved value/action representation.
-3. **Target network** with periodic parameter synchronization.
-4. Enriching the state with **current phase and elapsed phase time**.
-5. **Multi-intersection coordination** using cooperative DQN agents.
-6. **Transfer learning** from simulated environments to real-world traffic sensor data.
-
-These directions are outlined in the research paper. fileciteturn0file0L336-L352
+2. **Dueling DQN** for improved state-value and action-advantage estimation.
+3. Enriching the state representation with current signal phase and elapsed phase time.
+4. **Multi-intersection coordination** using cooperative reinforcement learning.
+5. Repeating training across multiple random initializations to evaluate training variability.
+6. Transfer learning from simulated environments to real-world traffic sensor data.
+7. Developing fail-safe mechanisms for eventual real-world deployment.
 
 ---
 
-##  References
+## References
 
-The complete bibliography is available in the accompanying paper, including foundational works on reinforcement learning, DQN, SUMO, experience replay, adaptive traffic signals, Double DQN, and Dueling DQN. fileciteturn0file0L358-L397
+The complete bibliography is available in the accompanying research paper.
 
 Key references include:
 
-- Sutton & Barto — *Reinforcement Learning: An Introduction*
-- Mnih et al. — *Human-level control through deep reinforcement learning*
-- Behrisch et al. — *SUMO — Simulation of Urban MObility*
-- Vidali et al. — *A deep reinforcement learning approach to adaptive traffic signals management*
-- Chu et al. — *Multi-agent deep reinforcement learning for large-scale traffic signal control*
+- Sutton and Barto — *Reinforcement Learning: An Introduction*.
+- Mnih et al. — *Human-level control through deep reinforcement learning*.
+- Behrisch et al. — *SUMO: Simulation of Urban MObility*.
+- Vidali et al. — *A Deep Reinforcement Learning Approach to Adaptive Traffic Signals Management*.
+- Genders and Razavi — *Using a Deep Reinforcement Learning Agent for Traffic Signal Control*.
+- Wei et al. — *CoLight: Learning Network-Level Cooperation for Traffic Signal Control*.
 
 ---
 
-##  Citation
+## Citation
 
-If you use this project or the accompanying research paper in your work, please cite the paper:
+If you use this implementation or research in your work, please cite the following paper:
 
-```text
-Deep Q-Learning Agent for Adaptive Traffic Signal Control Using
-SUMO Microscopic Simulation.
-```
+**Deep Q-Learning Agent for Adaptive Traffic Signal Control Using SUMO Microscopic Simulation.**
 
----
-
-##  License
-
-This project is released under the **MIT License**, as stated in the accompanying paper. fileciteturn0file0L348-L352
+Presented at the Hinweis Fifth International Conference on Advances in Software Engineering and Information Technology (ASIT-2026), September 27, 2026.
 
 ---
 
-##  Author
+## License
+
+This project is released under the **MIT License**.
+
+---
+
+## Author
 
 **Chirayu Jaju**
+
+School of Computer Science and Engineering  
+VIT-AP University, Andhra Pradesh, India
 
 GitHub: [@chirayu08](https://github.com/chirayu08)
 
@@ -469,4 +566,6 @@ Repository: [dql-traffic-signal](https://github.com/chirayu08/dql-traffic-signal
 
 ## Acknowledgements
 
-This work acknowledges the **SUMO development team at DLR** for maintaining the SUMO traffic simulation platform and the **PyTorch community** for the deep learning framework used in the project. fileciteturn0file0L353-L357
+The authors thank the SUMO development team at DLR for maintaining an excellent open-source traffic simulator and the PyTorch community for the deep learning framework used in this work.
+
+We also acknowledge the guidance and support received from our faculty during the development of this research project.
