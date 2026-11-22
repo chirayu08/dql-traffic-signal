@@ -30,7 +30,7 @@ tools = os.path.join(os.environ["SUMO_HOME"], "tools")
 sys.path.append(tools)
 
 SUMO_CMD = [
-    "sumo",
+    "sumo-gui",
     "-c", os.path.join(os.path.dirname(__file__), "intersection/sumo_config.sumocfg"),
     "--no-step-log", "true",
     "--waiting-time-memory", "10000"

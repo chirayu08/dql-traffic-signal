@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2026-04-22T14:27:55.354463+05:30 by Eclipse SUMO GUI 1.26.0
+-->
+
+<sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="c:/Users/INDIA/dql-traffic-signal/intersection/environment.net.xml"/>
+        <route-files value="c:/Users/INDIA/dql-traffic-signal/intersection/episode_routes.rou.xml"/>
+    </input>
+
+    <time>
+        <begin value="0"/>
+        <end value="5400"/>
+    </time>
+
+    <processing>
+        <time-to-teleport value="-1"/>
+        <waiting-time-memory value="10000"/>
+    </processing>
+
+    <report>
+        <no-step-log value="true"/>
+    </report>
+
+    <traci_server>
+        <remote-port value="57123"/>
+    </traci_server>
+
+</sumoConfiguration>

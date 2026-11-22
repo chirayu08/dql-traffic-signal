@@ -20,7 +20,7 @@ if "SUMO_HOME" not in os.environ:
 sys.path.append(os.path.join(os.environ["SUMO_HOME"], "tools"))
 
 SUMO_CMD = [
-    "sumo", "-c", "intersection/sumo_config.sumocfg",
+    "sumo-gui", "-c", "intersection/sumo_config.sumocfg",
     "--no-step-log", "true", "--waiting-time-memory", "10000"
 ]
 

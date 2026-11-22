@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DQL Agent – System Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --env-col: #00c9a7;
+    --agent-col: #4f8ef7;
+    --signal-col: #f7c948;
+    --reward-col: #f76d6d;
+    --text: #e8edf5;
+    --muted: #8896b0;
+    --border: #263352;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 20px 60px;
+  }
+
+  h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--agent-col);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 40px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* ── diagram wrapper ── */
+  .diagram {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr;
+    gap: 0;
+    max-width: 900px;
+    margin: 0 auto 56px;
+    align-items: center;
+  }
+
+  /* columns */
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* section header */
+  .col-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .col-header.env  { background: rgba(0,201,167,0.12); color: var(--env-col);   border: 1px solid rgba(0,201,167,0.3); }
+  .col-header.agent{ background: rgba(79,142,247,0.12); color: var(--agent-col); border: 1px solid rgba(79,142,247,0.3); }
+
+  /* blocks */
+  .block {
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    animation: fadeUp 0.6s ease both;
+  }
+  .block.env-block {
+    background: linear-gradient(135deg, #0d2a24, #122d22);
+    border: 1px solid rgba(0,201,167,0.35);
+    box-shadow: 0 0 24px rgba(0,201,167,0.06);
+  }
+  .block.agent-block {
+    background: linear-gradient(135deg, #0e1d3a, #132340);
+    border: 1px solid rgba(79,142,247,0.35);
+    box-shadow: 0 0 24px rgba(79,142,247,0.06);
+  }
+
+  .block-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .env-block .block-title  { color: var(--env-col); }
+  .agent-block .block-title{ color: var(--agent-col); }
+
+  .block ul {
+    list-style: none;
+    padding: 0;
+  }
+  .block ul li {
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding: 2px 0 2px 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .block ul li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--signal-col);
+  }
+
+  /* info pills */
+  .pill {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 100px;
+    margin-top: 8px;
+    margin-right: 4px;
+  }
+  .pill.state  { background: rgba(247,201,72,0.12);  color: var(--signal-col); border:1px solid rgba(247,201,72,0.3); }
+  .pill.reward { background: rgba(247,109,109,0.12); color: var(--reward-col); border:1px solid rgba(247,109,109,0.3); }
+
+  /* ── arrow channel ── */
+  .channel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 0 6px;
+  }
+
+  .arrow-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .arrow-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+  }
+  .arrow-label.state  { color: var(--signal-col); }
+  .arrow-label.action { color: var(--env-col);    }
+  .arrow-label.reward { color: var(--reward-col); }
+
+  /* SVG arrows */
+  .arrow-svg { overflow: visible; }
+
+  /* vertical divider */
+  .divider {
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--border) 20%, var(--border) 80%, transparent);
+    align-self: stretch;
+    margin: 0 auto;
+  }
+
+  /* ── explanation section ── */
+  .explanation {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .exp-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  .exp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .exp-card {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    animation: fadeUp 0.7s ease both;
+  }
+  .exp-card:nth-child(1){ animation-delay:0.1s }
+  .exp-card:nth-child(2){ animation-delay:0.2s }
+  .exp-card:nth-child(3){ animation-delay:0.3s }
+  .exp-card:nth-child(4){ animation-delay:0.4s }
+  .exp-card:nth-child(5){ animation-delay:0.5s }
+  .exp-card:nth-child(6){ animation-delay:0.6s }
+
+  .exp-card-icon {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+  }
+  .exp-card-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.76rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .exp-card-body {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+  .exp-card-body strong { color: var(--text); font-weight: 600; }
+
+  .tag {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    padding: 1px 7px;
+    border-radius: 100px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .tag.env   { background:rgba(0,201,167,0.15); color:var(--env-col);   border:1px solid rgba(0,201,167,0.3); }
+  .tag.agent { background:rgba(79,142,247,0.15); color:var(--agent-col); border:1px solid rgba(79,142,247,0.3); }
+  .tag.sig   { background:rgba(247,201,72,0.15); color:var(--signal-col);border:1px solid rgba(247,201,72,0.3); }
+
+  /* flow footer */
+  .flow-bar {
+    max-width: 900px;
+    margin: 32px auto 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+  .flow-step span { color: var(--text); font-weight: 600; }
+  .flow-arrow { color: var(--border); font-size: 1rem; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(16px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  @media(max-width:640px) {
+    .diagram { grid-template-columns: 1fr; }
+    .channel { flex-direction: row; justify-content: space-around; padding: 10px 0; }
+    .divider { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<h1>DQL Agent — System Architecture</h1>
+<p class="subtitle">SUMO/TraCI Environment &nbsp;×&nbsp; Deep Q-Network Agent</p>
+
+<!-- ════════════════════ DIAGRAM ════════════════════ -->
+<div class="diagram">
+
+  <!-- LEFT: ENVIRONMENT -->
+  <div class="col">
+    <div class="col-header env">Environment</div>
+
+    <div class="block env-block" style="animation-delay:0.1s">
+      <div class="block-title">SUMO Simulation Core</div>
+      <ul>
+        <li>SUMO traffic simulator engine</li>
+        <li>TraCI API interface</li>
+        <li>Intersection topology map</li>
+      </ul>
+    </div>
+
+    <div class="block env-block" style="animation-delay:0.2s">
+      <div class="block-title">State &nbsp;<code style="font-size:0.7rem;color:var(--signal-col)">(s)</code></div>
+      <ul>
+        <li>Queue lengths per lane</li>
+        <li>Current phase encoding</li>
+      </ul>
+      <span class="pill state">vector → DQL agent</span>
+    </div>
+
+    <div class="block env-block" style="animation-delay:0.3s">
+      <div class="block-title">Reward &nbsp;<code style="font-size:0.7rem;color:var(--reward-col)">(r)</code></div>
+      <ul>
+        <li>−Δ cumulative wait time</li>
+        <li>Per simulation step</li>
+      </ul>
+      <span class="pill reward">scalar feedback</span>
+    </div>
+  </div>
+
+  <!-- MIDDLE: CHANNEL -->
+  <div class="channel">
+    <div class="arrow-group">
+      <span class="arrow-label state">s →</span>
+      <svg class="arrow-svg" width="40" height="22" viewBox="0 0 40 22">
+        <defs><marker id="ah1" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#f7c948"/>
+        </marker></defs>
+        <line x1="2" y1="11" x2="35" y2="11" stroke="#f7c948" stroke-width="1.5" marker-end="url(#ah1)" stroke-dasharray="4 3"/>
+      </svg>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="arrow-group">
+      <svg class="arrow-svg" width="40" height="22" viewBox="0 0 40 22">
+        <defs><marker id="ah2" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto">
+          <path d="M6,0 L0,3 L6,6 Z" fill="#00c9a7"/>
+        </marker></defs>
+        <line x1="38" y1="11" x2="5" y2="11" stroke="#00c9a7" stroke-width="1.5" marker-end="url(#ah2)" stroke-dasharray="4 3"/>
+      </svg>
+      <span class="arrow-label action">← a</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="arrow-group">
+      <span class="arrow-label reward">r, s'→</span>
+      <svg class="arrow-svg" width="40" height="22" viewBox="0 0 40 22">
+        <defs><marker id="ah3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#f76d6d"/>
+        </marker></defs>
+        <line x1="2" y1="11" x2="35" y2="11" stroke="#f76d6d" stroke-width="1.5" marker-end="url(#ah3)" stroke-dasharray="4 3"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- RIGHT: DQL AGENT -->
+  <div class="col">
+    <div class="col-header agent">DQL Agent</div>
+
+    <div class="block agent-block" style="animation-delay:0.1s">
+      <div class="block-title">Deep Q-Network (DQN)</div>
+      <ul>
+        <li>Neural network Q(s,a; θ)</li>
+        <li>ε-greedy exploration policy</li>
+        <li>Bellman equation update</li>
+      </ul>
+    </div>
+
+    <div class="block agent-block" style="animation-delay:0.2s">
+      <div class="block-title">Replay Memory</div>
+      <ul>
+        <li>Stores transitions (s, a, r, s′)</li>
+        <li>Random mini-batch sampling</li>
+        <li>Breaks temporal correlation</li>
+      </ul>
+    </div>
+
+    <div class="block agent-block" style="animation-delay:0.3s">
+      <div class="block-title">Target Network</div>
+      <ul>
+        <li>Frozen copy of Q-network</li>
+        <li>Periodic weight synchronisation</li>
+        <li>Stabilises training targets</li>
+      </ul>
+    </div>
+  </div>
+
+</div><!-- /diagram -->
+
+<!-- ════════════════════ LOOP BAR ════════════════════ -->
+<div class="flow-bar">
+  <div class="flow-step"><span>1</span> Env emits state <em>s</em></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><span>2</span> DQN selects action <em>a</em></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><span>3</span> Env steps → reward <em>r</em>, next state <em>s′</em></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><span>4</span> (s,a,r,s′) stored in Replay Memory</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><span>5</span> Random batch trains DQN via Bellman</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step"><span>6</span> Target Net synced periodically</div>
+</div>
+
+<!-- ════════════════════ EXPLANATION CARDS ════════════════════ -->
+<div class="explanation" style="margin-top:48px;">
+  <p class="exp-title">Component Explanations</p>
+  <div class="exp-grid">
+
+    <div class="exp-card">
+      <div class="exp-card-icon">🏙️</div>
+      <div class="exp-card-title"><span class="tag env">ENV</span> SUMO / TraCI</div>
+      <div class="exp-card-body">
+        <strong>SUMO</strong> (Simulation of Urban Mobility) is an open-source traffic simulator. <strong>TraCI</strong> (Traffic Control Interface) is its Python API, allowing the DQL agent to read vehicle data and issue signal-phase commands in real time each simulation step.
+      </div>
+    </div>
+
+    <div class="exp-card">
+      <div class="exp-card-icon">📡</div>
+      <div class="exp-card-title"><span class="tag sig">SIG</span> State Vector (s)</div>
+      <div class="exp-card-body">
+        At every time step the environment reports the agent's <strong>observation</strong>: per-lane queue lengths (number of vehicles waiting) and a one-hot encoding of the active traffic-light phase. This compact vector fully describes what the agent can observe.
+      </div>
+    </div>
+
+    <div class="exp-card">
+      <div class="exp-card-icon">🏆</div>
+      <div class="exp-card-title"><span class="tag sig">SIG</span> Reward Signal (r)</div>
+      <div class="exp-card-body">
+        The reward is the <strong>negative change in cumulative vehicle wait time</strong> (−Δ wait). Reducing total waiting earns a positive reward; increasing it penalises the agent. This directly aligns the agent's goal with minimising intersection congestion.
+      </div>
+    </div>
+
+    <div class="exp-card">
+      <div class="exp-card-icon">🧠</div>
+      <div class="exp-card-title"><span class="tag agent">AGENT</span> Deep Q-Network</div>
+      <div class="exp-card-body">
+        A <strong>neural network</strong> approximates Q(s, a) — the expected cumulative reward for taking action <em>a</em> in state <em>s</em>. An <strong>ε-greedy</strong> policy balances exploration vs exploitation. Weights are updated via the <strong>Bellman equation</strong>: Q(s,a) ← r + γ·max Q(s′,a′).
+      </div>
+    </div>
+
+    <div class="exp-card">
+      <div class="exp-card-icon">💾</div>
+      <div class="exp-card-title"><span class="tag agent">AGENT</span> Replay Memory</div>
+      <div class="exp-card-body">
+        Each transition <strong>(s, a, r, s′)</strong> is stored in a circular buffer. Training samples a <strong>random mini-batch</strong>, breaking the temporal correlation between consecutive steps. This is essential for stable gradient-descent learning in an RL setting.
+      </div>
+    </div>
+
+    <div class="exp-card">
+      <div class="exp-card-icon">🎯</div>
+      <div class="exp-card-title"><span class="tag agent">AGENT</span> Target Network</div>
+      <div class="exp-card-body">
+        A <strong>frozen copy</strong> of the Q-network provides stable Bellman targets during training. Its weights are periodically copied from the live network (every N steps). Without this, the target would shift every update, causing training instability or divergence.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

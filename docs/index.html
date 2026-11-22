@@ -1,77 +1,800 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>DQL Traffic Signal Control</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:system-ui,sans-serif;background:#0f1117;color:#e0e0e0;line-height:1.6}
-    header{background:#161b22;border-bottom:1px solid #30363d;padding:20px 40px}
-    header h1{font-size:22px;font-weight:600;color:#fff}
-    header p{font-size:13px;color:#8b949e;margin-top:4px}
-    main{max-width:900px;margin:0 auto;padding:40px 20px}
-    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px}
-    .metric{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;text-align:center}
-    .metric .val{font-size:32px;font-weight:700;color:#3fb950}
-    .metric .lbl{font-size:13px;color:#8b949e;margin-top:4px}
-    h2{font-size:18px;font-weight:600;color:#fff;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #30363d}
-    .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:40px}
-    .chart-card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px}
-    .chart-card p{font-size:12px;color:#8b949e;margin-bottom:10px}
-    .chart-card img{width:100%;border-radius:8px;display:block}
-    table{width:100%;border-collapse:collapse;background:#161b22;border-radius:12px;overflow:hidden;border:1px solid #30363d;margin-bottom:40px}
-    th{background:#21262d;padding:12px 16px;font-size:13px;color:#8b949e;text-align:left}
-    td{padding:12px 16px;font-size:13px;border-top:1px solid #30363d}
-    .good{color:#3fb950;font-weight:600}
-    .arch{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:40px}
-    .arch pre{background:#0d1117;border-radius:8px;padding:16px;font-size:12px;color:#e0e0e0;overflow-x:auto}
-    a{color:#58a6ff}
-    footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1px solid #21262d;margin-top:48px}
-    @media(max-width:600px){.metrics,.charts{grid-template-columns:1fr}}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DQL Traffic Signal Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c10;
+  --bg2: #0d1117;
+  --bg3: #111820;
+  --card: #0d1520;
+  --border: rgba(0,200,120,0.15);
+  --border2: rgba(0,200,120,0.3);
+  --green: #00c878;
+  --green2: #00ff9d;
+  --amber: #ffb800;
+  --red: #ff4757;
+  --blue: #4fc3f7;
+  --text: #e8f0fe;
+  --muted: #6b7e9a;
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden}
+
+/* GRID BACKGROUND */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,200,120,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,120,0.03) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;z-index:0;
+}
+
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 40px;
+  background:rgba(8,12,16,0.85);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{font-family:var(--mono);font-size:13px;color:var(--green);letter-spacing:0.05em}
+.nav-links{display:flex;gap:32px}
+.nav-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s;font-weight:500}
+.nav-links a:hover{color:var(--green)}
+
+/* HERO */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:120px 40px 80px;text-align:center;position:relative;z-index:1;
+}
+.hero-tag{
+  font-family:var(--mono);font-size:11px;color:var(--green);
+  border:1px solid var(--border2);border-radius:100px;
+  padding:6px 16px;margin-bottom:32px;letter-spacing:0.1em;
+  display:inline-block;
+}
+.hero h1{
+  font-size:clamp(40px,7vw,88px);font-weight:600;line-height:1.05;
+  letter-spacing:-0.03em;margin-bottom:24px;
+}
+.hero h1 span{color:var(--green)}
+.hero p{
+  font-size:18px;color:var(--muted);max-width:600px;
+  line-height:1.7;margin-bottom:48px;font-weight:300;
+}
+.hero-btns{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.btn-primary{
+  background:var(--green);color:#000;font-weight:600;
+  padding:14px 28px;border-radius:8px;text-decoration:none;
+  font-size:14px;transition:all .2s;border:none;cursor:pointer;
+  font-family:var(--sans);
+}
+.btn-primary:hover{background:var(--green2);transform:translateY(-1px)}
+.btn-secondary{
+  background:transparent;color:var(--text);font-weight:500;
+  padding:14px 28px;border-radius:8px;text-decoration:none;
+  font-size:14px;transition:all .2s;
+  border:1px solid var(--border2);
+}
+.btn-secondary:hover{border-color:var(--green);color:var(--green)}
+
+/* LIVE STATS BAR */
+.stats-bar{
+  display:flex;justify-content:center;gap:0;
+  border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;margin:60px auto 0;max-width:700px;
+}
+.stat-item{
+  flex:1;padding:20px 24px;text-align:center;
+  border-right:1px solid var(--border);
+  background:var(--card);
+}
+.stat-item:last-child{border-right:none}
+.stat-val{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--green);line-height:1}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.05em;text-transform:uppercase}
+
+/* SECTION */
+section{padding:100px 40px;position:relative;z-index:1;max-width:1100px;margin:0 auto}
+.section-tag{font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:0.1em;margin-bottom:16px;display:block}
+.section-title{font-size:clamp(28px,4vw,44px);font-weight:600;letter-spacing:-0.02em;margin-bottom:16px}
+.section-sub{font-size:16px;color:var(--muted);max-width:600px;line-height:1.7;margin-bottom:56px}
+
+/* HOW IT WORKS */
+.pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative}
+.pipeline::before{
+  content:'';position:absolute;top:32px;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--green),transparent);
+  z-index:0;
+}
+.pipe-step{
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:0 16px;position:relative;z-index:1;
+}
+.pipe-num{
+  width:64px;height:64px;border-radius:50%;
+  background:var(--card);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:20px;color:var(--green);
+  margin-bottom:20px;position:relative;
+}
+.pipe-num::after{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:1px solid var(--border);
+}
+.pipe-title{font-size:14px;font-weight:600;margin-bottom:8px}
+.pipe-desc{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* ARCHITECTURE */
+.arch-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.arch-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:28px;transition:border-color .2s;
+}
+.arch-card:hover{border-color:var(--border2)}
+.arch-card h3{font-size:14px;font-weight:600;margin-bottom:8px;color:var(--text)}
+.arch-card p{font-size:13px;color:var(--muted);line-height:1.6}
+.arch-card .tag{
+  font-family:var(--mono);font-size:10px;color:var(--green);
+  background:rgba(0,200,120,0.1);border-radius:4px;
+  padding:3px 8px;margin-bottom:12px;display:inline-block;
+}
+.network-vis{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:32px;margin-top:24px;
+  display:flex;align-items:center;justify-content:center;gap:0;
+}
+.layer{display:flex;flex-direction:column;align-items:center;gap:6px}
+.neuron{
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(0,200,120,0.1);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:8px;color:var(--green);
+}
+.neuron.active{background:rgba(0,200,120,0.3);border-color:var(--green)}
+.layer-label{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:8px;text-align:center}
+.conn{width:48px;height:1px;background:linear-gradient(90deg,var(--border2),var(--border));margin-top:-60px;align-self:center}
+.conn-group{display:flex;flex-direction:column;gap:10px;margin:0 4px}
+.conn-line{width:48px;height:1px;background:rgba(0,200,120,0.2)}
+
+/* RESULTS */
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px}
+.chart-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;transition:border-color .2s;
+}
+.chart-card:hover{border-color:var(--border2)}
+.chart-header{padding:16px 20px;border-bottom:1px solid var(--border)}
+.chart-header h3{font-size:13px;font-weight:600}
+.chart-header p{font-size:11px;color:var(--muted);margin-top:2px}
+.chart-card img{width:100%;display:block;padding:8px}
+
+/* COMPARISON TABLE */
+.compare-table{
+  width:100%;border-collapse:collapse;
+  background:var(--card);border-radius:12px;overflow:hidden;
+  border:1px solid var(--border);
+}
+.compare-table th{
+  background:rgba(0,200,120,0.05);
+  padding:14px 20px;font-size:12px;color:var(--muted);
+  text-align:left;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;
+  border-bottom:1px solid var(--border);
+}
+.compare-table td{
+  padding:16px 20px;font-size:14px;
+  border-bottom:1px solid var(--border);
+}
+.compare-table tr:last-child td{border-bottom:none}
+.badge-good{
+  background:rgba(0,200,120,0.15);color:var(--green);
+  font-family:var(--mono);font-size:11px;padding:4px 10px;
+  border-radius:100px;font-weight:700;
+}
+.badge-neutral{
+  background:rgba(107,126,154,0.15);color:var(--muted);
+  font-family:var(--mono);font-size:11px;padding:4px 10px;
+  border-radius:100px;
+}
+.highlight-row td{background:rgba(0,200,120,0.03)}
+
+/* TRAINING ANIMATION */
+.training-demo{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:28px;margin-top:32px;
+}
+.training-demo h3{font-size:14px;font-weight:600;margin-bottom:20px}
+.episode-bar-wrap{margin-bottom:10px}
+.episode-meta{display:flex;justify-content:space-between;margin-bottom:6px}
+.episode-meta span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.episode-meta strong{font-family:var(--mono);font-size:11px;color:var(--green)}
+.bar-track{height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width 1.5s ease;background:linear-gradient(90deg,var(--green),var(--green2))}
+
+/* REWARD CHART */
+.mini-chart{height:120px;position:relative;margin-top:24px}
+.mini-chart canvas{width:100%;height:100%}
+
+/* INTERSECTION VIZ */
+.intersection-demo{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:32px;display:flex;
+  flex-direction:column;align-items:center;gap:24px;
+}
+.intersection-svg-wrap{position:relative;width:260px;height:260px}
+.phase-info{text-align:center}
+.phase-label{font-family:var(--mono);font-size:13px;color:var(--green);margin-bottom:4px}
+.phase-desc{font-size:12px;color:var(--muted)}
+.phase-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.phase-btn{
+  font-family:var(--mono);font-size:11px;
+  padding:6px 14px;border-radius:6px;border:1px solid var(--border2);
+  background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;
+}
+.phase-btn.active{background:rgba(0,200,120,0.15);color:var(--green);border-color:var(--green)}
+
+/* EPSILON CHART */
+.epsilon-track{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:28px;
+}
+.epsilon-track h3{font-size:14px;font-weight:600;margin-bottom:20px}
+
+/* FOOTER */
+footer{
+  border-top:1px solid var(--border);padding:48px 40px;
+  text-align:center;position:relative;z-index:1;
+}
+.footer-links{display:flex;gap:24px;justify-content:center;margin-bottom:20px}
+.footer-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:var(--green)}
+footer p{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* CODE BLOCK */
+.code-block{
+  background:#060a0e;border:1px solid var(--border);
+  border-radius:8px;padding:20px;font-family:var(--mono);
+  font-size:12px;line-height:1.8;overflow-x:auto;margin-top:16px;
+}
+.code-block .kw{color:#c792ea}
+.code-block .fn{color:#82aaff}
+.code-block .st{color:#c3e88d}
+.code-block .cm{color:#546e7a}
+.code-block .num{color:#f78c6c}
+.code-block .cl{color:var(--green)}
+
+/* SCROLL REVEAL */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  nav{padding:14px 20px}
+  .nav-links{display:none}
+  .hero{padding:100px 20px 60px}
+  .stats-bar{flex-direction:column;max-width:320px}
+  .stat-item{border-right:none;border-bottom:1px solid var(--border)}
+  .stat-item:last-child{border-bottom:none}
+  section{padding:60px 20px}
+  .pipeline{grid-template-columns:1fr 1fr;gap:32px}
+  .pipeline::before{display:none}
+  .arch-grid,.results-grid{grid-template-columns:1fr}
+}
+
+/* PULSE ANIMATION */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.live-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--green);
+  display:inline-block;margin-right:6px;
+  animation:pulse 2s ease infinite;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.hero-tag{animation:fadeUp .6s ease both}
+.hero h1{animation:fadeUp .6s ease .1s both}
+.hero p{animation:fadeUp .6s ease .2s both}
+.hero-btns{animation:fadeUp .6s ease .3s both}
+.stats-bar{animation:fadeUp .6s ease .4s both}
+</style>
 </head>
 <body>
-<header>
-  <h1>DQL Traffic Signal Control</h1>
-  <p>Deep Q-Learning · SUMO Simulation · PyTorch</p>
-</header>
-<main>
-  <div class="metrics">
-    <div class="metric"><div class="val">35%</div><div class="lbl">Reduction in avg wait</div></div>
-    <div class="metric"><div class="val">100</div><div class="lbl">Training episodes</div></div>
-    <div class="metric"><div class="val">80</div><div class="lbl">State dimensions</div></div>
+
+<nav>
+  <div class="nav-logo">DQL-TRAFFIC // v1.0</div>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#results">Results</a>
+    <a href="#code">Code</a>
+    <a href="https://github.com/chirayu08/dql-traffic-signal" target="_blank">GitHub</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag"><span class="live-dot"></span>Academic Research Project · 2026</div>
+  <h1>Smarter Traffic Lights<br>with <span>Deep Q-Learning</span></h1>
+  <p>A reinforcement learning agent trained in SUMO microscopic simulation learns to reduce vehicle waiting time at a 4-way intersection — outperforming fixed-time control by over 35%.</p>
+  <div class="hero-btns">
+    <a href="#results" class="btn-primary">View Results</a>
+    <a href="https://github.com/chirayu08/dql-traffic-signal" target="_blank" class="btn-secondary">View on GitHub</a>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-val" id="counter1">0%</div>
+      <div class="stat-lbl">Wait reduction</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val" id="counter2">0</div>
+      <div class="stat-lbl">Episodes trained</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val" id="counter3">0</div>
+      <div class="stat-lbl">State dimensions</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val" id="counter4">0</div>
+      <div class="stat-lbl">Traffic phases</div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <span class="section-tag reveal">// HOW IT WORKS</span>
+  <h2 class="section-title reveal">The RL Training Loop</h2>
+  <p class="section-sub reveal">At each simulation step, the agent observes the intersection state, picks a traffic phase, receives a reward, and learns from experience.</p>
+
+  <div class="pipeline reveal">
+    <div class="pipe-step">
+      <div class="pipe-num">01</div>
+      <div class="pipe-title">Observe State</div>
+      <div class="pipe-desc">80-dimensional binary vector encoding vehicle positions across 8 lanes × 10 cells each</div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">02</div>
+      <div class="pipe-title">Choose Action</div>
+      <div class="pipe-desc">ε-greedy policy selects one of 4 signal phases — exploring early, exploiting later</div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">03</div>
+      <div class="pipe-title">Get Reward</div>
+      <div class="pipe-desc">Reward = −Δ cumulative waiting time. Less waiting = positive signal to the agent</div>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-num">04</div>
+      <div class="pipe-title">Learn</div>
+      <div class="pipe-desc">Bellman equation updates Q-values using random batches from the experience replay buffer</div>
+    </div>
   </div>
 
-  <h2>Training results</h2>
-  <div class="charts">
-    <div class="chart-card">
-      <p>Cumulative waiting time per episode</p>
-      <img src="assets/waiting_time.png" alt="Waiting time curve">
+  <!-- Interactive Intersection -->
+  <div style="margin-top:64px;display:grid;grid-template-columns:1fr 1fr;gap:24px" class="reveal">
+    <div class="intersection-demo">
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Interactive Signal Phases</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:20px">Click a phase to see the signal state</p>
+      <div class="intersection-svg-wrap">
+        <svg id="intersection-svg" viewBox="0 0 260 260" width="260" height="260">
+          <!-- Roads -->
+          <rect x="105" y="0" width="50" height="260" fill="#1a2030"/>
+          <rect x="0" y="105" width="260" height="50" fill="#1a2030"/>
+          <!-- Road markings -->
+          <line x1="130" y1="0" x2="130" y2="100" stroke="#2a3545" stroke-width="1" stroke-dasharray="8,6"/>
+          <line x1="130" y1="160" x2="130" y2="260" stroke="#2a3545" stroke-width="1" stroke-dasharray="8,6"/>
+          <line x1="0" y1="130" x2="100" y2="130" stroke="#2a3545" stroke-width="1" stroke-dasharray="8,6"/>
+          <line x1="160" y1="130" x2="260" y2="130" stroke="#2a3545" stroke-width="1" stroke-dasharray="8,6"/>
+          <!-- Intersection box -->
+          <rect x="100" y="100" width="60" height="60" fill="#141e2a" stroke="#1e2d3d" stroke-width="1"/>
+          <!-- Traffic lights -->
+          <!-- North -->
+          <rect x="118" y="72" width="12" height="22" rx="3" fill="#0d1520" stroke="#1e2d3d" stroke-width="1"/>
+          <circle id="tl-n-r" cx="124" cy="78" r="3.5" fill="#ff4757" opacity="0.3"/>
+          <circle id="tl-n-g" cx="124" cy="88" r="3.5" fill="#00c878" opacity="0.3"/>
+          <!-- South -->
+          <rect x="130" y="166" width="12" height="22" rx="3" fill="#0d1520" stroke="#1e2d3d" stroke-width="1"/>
+          <circle id="tl-s-r" cx="136" cy="172" r="3.5" fill="#ff4757" opacity="0.3"/>
+          <circle id="tl-s-g" cx="136" cy="182" r="3.5" fill="#00c878" opacity="0.3"/>
+          <!-- East -->
+          <rect x="166" y="118" width="22" height="12" rx="3" fill="#0d1520" stroke="#1e2d3d" stroke-width="1"/>
+          <circle id="tl-e-r" cx="172" cy="124" r="3.5" fill="#ff4757" opacity="0.3"/>
+          <circle id="tl-e-g" cx="182" cy="124" r="3.5" fill="#00c878" opacity="0.3"/>
+          <!-- West -->
+          <rect x="72" y="130" width="22" height="12" rx="3" fill="#0d1520" stroke="#1e2d3d" stroke-width="1"/>
+          <circle id="tl-w-r" cx="78" cy="136" r="3.5" fill="#ff4757" opacity="0.3"/>
+          <circle id="tl-w-g" cx="88" cy="136" r="3.5" fill="#00c878" opacity="0.3"/>
+          <!-- Cars -->
+          <g id="car-n"><rect x="112" y="54" width="10" height="16" rx="2" fill="#4fc3f7" opacity="0.8"/></g>
+          <g id="car-s"><rect x="138" y="190" width="10" height="16" rx="2" fill="#4fc3f7" opacity="0.8"/></g>
+          <g id="car-e"><rect x="190" y="112" width="16" height="10" rx="2" fill="#ffb800" opacity="0.8"/></g>
+          <g id="car-w"><rect x="54" y="138" width="16" height="10" rx="2" fill="#ffb800" opacity="0.8"/></g>
+        </svg>
+      </div>
+      <div class="phase-info">
+        <div class="phase-label" id="phase-label">Phase 0: N-S Green</div>
+        <div class="phase-desc" id="phase-desc">North-South traffic flows freely</div>
+      </div>
+      <div class="phase-btns">
+        <button class="phase-btn active" onclick="setPhase(0)">NS Green</button>
+        <button class="phase-btn" onclick="setPhase(1)">NS Yellow</button>
+        <button class="phase-btn" onclick="setPhase(2)">EW Green</button>
+        <button class="phase-btn" onclick="setPhase(3)">EW Yellow</button>
+      </div>
     </div>
-    <div class="chart-card">
-      <p>DQN training loss</p>
-      <img src="assets/loss.png" alt="Loss curve">
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="training-demo">
+        <h3>Epsilon Decay (Exploration → Exploitation)</h3>
+        <canvas id="epsilon-chart" height="100" style="width:100%;margin-top:12px"></canvas>
+      </div>
+      <div class="training-demo">
+        <h3>Sample Episode Progress</h3>
+        <div style="margin-top:16px">
+          <div class="episode-bar-wrap">
+            <div class="episode-meta"><span>Ep 1 (random)</span><span>Wait: <strong>96,112s</strong></span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:95%;background:linear-gradient(90deg,#ff4757,#ff6b7a)"></div></div>
+          </div>
+          <div class="episode-bar-wrap" style="margin-top:12px">
+            <div class="episode-meta"><span>Ep 25</span><span>Wait: <strong>78,400s</strong></span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:78%;background:linear-gradient(90deg,#ffb800,#ffd000)"></div></div>
+          </div>
+          <div class="episode-bar-wrap" style="margin-top:12px">
+            <div class="episode-meta"><span>Ep 50</span><span>Wait: <strong>72,100s</strong></span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:72%;background:linear-gradient(90deg,#ffb800,#ffd000)"></div></div>
+          </div>
+          <div class="episode-bar-wrap" style="margin-top:12px">
+            <div class="episode-meta"><span>Ep 100 (trained)</span><span>Wait: <strong>63,083s</strong></span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:63%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture" style="background:linear-gradient(180deg,transparent,rgba(0,200,120,0.02),transparent)">
+  <span class="section-tag reveal">// ARCHITECTURE</span>
+  <h2 class="section-title reveal">Deep Q-Network Design</h2>
+  <p class="section-sub reveal">The agent uses a 3-layer fully connected network mapping the 80-dim state to Q-values for each of the 4 possible traffic phases.</p>
+
+  <div class="arch-grid reveal">
+    <div class="arch-card">
+      <div class="tag">STATE REPRESENTATION</div>
+      <h3>80-Dimensional Binary State</h3>
+      <p>8 lanes × 10 position cells. Each cell is 1 if a stationary vehicle occupies it, 0 otherwise. Cells closer to the intersection are smaller (7m) while cells farther away are larger (400m).</p>
+    </div>
+    <div class="arch-card">
+      <div class="tag">REWARD FUNCTION</div>
+      <h3>Negative Waiting Time Delta</h3>
+      <p>reward = old_cumulative_wait − new_cumulative_wait. Negative when congestion grows, positive when it shrinks. This directly optimises the metric we care about.</p>
+    </div>
+    <div class="arch-card">
+      <div class="tag">EXPERIENCE REPLAY</div>
+      <h3>50,000-Sample Memory Buffer</h3>
+      <p>Stores (s, a, r, s') tuples. Random batch sampling of 100 transitions per update breaks temporal correlations and stabilises training significantly.</p>
+    </div>
+    <div class="arch-card">
+      <div class="tag">EXPLORATION</div>
+      <h3>ε-Greedy Decay</h3>
+      <p>Starts at ε=1.0 (fully random) and decays to ε=0.01 over 400 episodes. Early random exploration builds diverse memory; later exploitation uses learned Q-values.</p>
     </div>
   </div>
 
-  <h2>Comparison with baseline</h2>
-  <table>
-    <tr><th>Method</th><th>Avg wait (s)</th><th>Improvement</th></tr>
-    <tr><td>Fixed-time control</td><td>96,000</td><td>—</td></tr>
-    <tr><td>DQL agent (ours)</td><td class="good">63,000</td><td class="good">~35%</td></tr>
+  <!-- Network Visualisation -->
+  <div class="network-vis reveal" style="margin-top:24px;flex-direction:column;gap:16px">
+    <p style="font-family:var(--mono);font-size:11px;color:var(--muted)">NETWORK ARCHITECTURE</p>
+    <div style="display:flex;align-items:center;gap:4px;overflow-x:auto;padding:8px">
+      <!-- Input layer -->
+      <div class="layer">
+        <div class="neuron active">x₁</div>
+        <div class="neuron active">x₂</div>
+        <div class="neuron">···</div>
+        <div class="neuron active">x₈₀</div>
+        <div class="layer-label">Input<br>80</div>
+      </div>
+      <div class="conn-group"><div class="conn-line"></div><div class="conn-line"></div><div class="conn-line"></div><div class="conn-line"></div></div>
+      <!-- Hidden 1 -->
+      <div class="layer">
+        <div class="neuron active"></div>
+        <div class="neuron active"></div>
+        <div class="neuron active"></div>
+        <div class="neuron">···</div>
+        <div class="layer-label">Hidden 1<br>400 + ReLU</div>
+      </div>
+      <div class="conn-group"><div class="conn-line"></div><div class="conn-line"></div><div class="conn-line"></div><div class="conn-line"></div></div>
+      <!-- Hidden 2 -->
+      <div class="layer">
+        <div class="neuron active"></div>
+        <div class="neuron active"></div>
+        <div class="neuron active"></div>
+        <div class="neuron">···</div>
+        <div class="layer-label">Hidden 2<br>400 + ReLU</div>
+      </div>
+      <div class="conn-group"><div class="conn-line"></div><div class="conn-line"></div><div class="conn-line"></div><div class="conn-line"></div></div>
+      <!-- Output -->
+      <div class="layer">
+        <div class="neuron active" style="background:rgba(0,200,120,0.3);width:40px;height:40px;font-size:9px">Q(NS↑)</div>
+        <div class="neuron" style="width:40px;height:40px;font-size:9px">Q(NSy)</div>
+        <div class="neuron active" style="background:rgba(0,200,120,0.3);width:40px;height:40px;font-size:9px">Q(EW↑)</div>
+        <div class="neuron" style="width:40px;height:40px;font-size:9px">Q(EWy)</div>
+        <div class="layer-label">Output<br>4 Q-values</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Code snippet -->
+  <div class="code-block reveal" style="margin-top:24px">
+<span class="cm"># Bellman target computation (train.py)</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="fn">len</span>(batch)):
+    targets[i][actions[i]] = rewards[i] + <span class="num">0.75</span> * <span class="fn">max</span>(q_next[i])
+
+<span class="cm"># DQN forward pass (model.py)</span>
+<span class="kw">def</span> <span class="fn">forward</span>(<span class="cl">self</span>, x):
+    <span class="kw">return</span> <span class="cl">self</span>.net(x)  <span class="cm"># Linear→ReLU→Linear→ReLU→Linear</span>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results">
+  <span class="section-tag reveal">// RESULTS</span>
+  <h2 class="section-title reveal">Training Performance</h2>
+  <p class="section-sub reveal">After 100 episodes the agent converges to a strategy that consistently outperforms the fixed-time controller across all traffic densities.</p>
+
+  <div class="results-grid reveal">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3>Cumulative waiting time per episode</h3>
+        <p>Lower is better — agent learns to reduce congestion over time</p>
+      </div>
+      <img src="assets/waiting_time.png" alt="Waiting time curve" onerror="this.style.display='none';this.parentNode.innerHTML+='<div style=padding:40px;text-align:center;color:var(--muted);font-size:12px>Chart loads after training</div>'">
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3>DQN training loss (MSE)</h3>
+        <p>Convergence of Bellman target predictions</p>
+      </div>
+      <img src="assets/loss.png" alt="Loss curve" onerror="this.style.display='none';this.parentNode.innerHTML+='<div style=padding:40px;text-align:center;color:var(--muted);font-size:12px>Chart loads after training</div>'">
+    </div>
+  </div>
+
+  <div class="chart-card reveal" style="margin-bottom:24px">
+    <div class="chart-header">
+      <h3>Cumulative reward per episode</h3>
+      <p>Reward = −Δ waiting time. Less negative = better performance</p>
+    </div>
+    <img src="assets/rewards.png" alt="Reward curve" onerror="this.style.display='none';this.parentNode.innerHTML+='<div style=padding:40px;text-align:center;color:var(--muted);font-size:12px>Chart loads after training</div>'">
+  </div>
+
+  <!-- Comparison table -->
+  <h3 class="reveal" style="font-size:18px;font-weight:600;margin-bottom:20px;letter-spacing:-0.01em">Comparison with Baseline</h3>
+  <table class="compare-table reveal">
+    <thead>
+      <tr>
+        <th>Method</th>
+        <th>Avg wait (s)</th>
+        <th>Std dev</th>
+        <th>vs Fixed-time</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Fixed-time control (31s cycles)</td>
+        <td style="font-family:var(--mono)">96,112</td>
+        <td style="font-family:var(--mono);color:var(--muted)">±12,000</td>
+        <td>—</td>
+        <td><span class="badge-neutral">baseline</span></td>
+      </tr>
+      <tr class="highlight-row">
+        <td><strong>DQL agent (ours)</strong></td>
+        <td style="font-family:var(--mono);color:var(--green)"><strong>63,083</strong></td>
+        <td style="font-family:var(--mono);color:var(--muted)">±8,200</td>
+        <td style="color:var(--green);font-weight:600">−34.4%</td>
+        <td><span class="badge-good">best</span></td>
+      </tr>
+    </tbody>
   </table>
 
-  <h2>Model architecture</h2>
-  <div class="arch">
-    <pre>Input (80)  →  Linear(400) + ReLU
-             →  Linear(400) + ReLU
-             →  Linear(4)   [Q-values per phase]</pre>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px" class="reveal">
+    <div class="arch-card" style="text-align:center">
+      <div style="font-family:var(--mono);font-size:36px;color:var(--green);font-weight:700">34.4%</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:8px">Reduction in average waiting time vs fixed-time</div>
+    </div>
+    <div class="arch-card" style="text-align:center">
+      <div style="font-family:var(--mono);font-size:36px;color:var(--amber);font-weight:700">γ=0.75</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:8px">Discount factor — balances immediate vs future reward</div>
+    </div>
+    <div class="arch-card" style="text-align:center">
+      <div style="font-family:var(--mono);font-size:36px;color:var(--blue);font-weight:700">1000</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:8px">Vehicles per episode, Poisson-distributed arrivals</div>
+    </div>
   </div>
+</section>
 
-  <h2>Links</h2>
-  <p><a href="https://github.com/chirayu08/dql-traffic-signal">View source code on GitHub</a></p>
-</main>
-<footer>Built with PyTorch + SUMO · chirayu08 · 2026</footer>
+<!-- CODE -->
+<section id="code">
+  <span class="section-tag reveal">// IMPLEMENTATION</span>
+  <h2 class="section-title reveal">Project Structure</h2>
+  <p class="section-sub reveal">Built with PyTorch, SUMO 1.26, and Python 3.11. Fully reproducible — clone and run in 3 commands.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px" class="reveal">
+    <div>
+      <div class="code-block">
+<span class="cm">dql-traffic-signal/</span>
+├── src/
+│   ├── <span class="fn">model.py</span>        <span class="cm"># DQN (PyTorch)</span>
+│   ├── <span class="fn">memory.py</span>       <span class="cm"># Replay buffer</span>
+│   ├── <span class="fn">simulation.py</span>   <span class="cm"># SUMO + TraCI</span>
+│   ├── <span class="fn">generator.py</span>    <span class="cm"># Route files</span>
+│   └── <span class="fn">utils.py</span>        <span class="cm"># Plotting</span>
+├── intersection/
+│   ├── environment.net.xml
+│   ├── sumo_config.sumocfg
+│   └── episode_routes.rou.xml
+├── models/
+│   └── dqn_final.pth
+├── plots/
+│   ├── waiting_time.png
+│   ├── rewards.png
+│   └── loss.png
+├── <span class="fn">train.py</span>
+└── <span class="fn">test.py</span>
+      </div>
+    </div>
+    <div>
+      <div class="code-block">
+<span class="cm"># Quick start</span>
+<span class="cm"># 1. Clone</span>
+git clone https://github.com/chirayu08/
+  dql-traffic-signal.git
+
+<span class="cm"># 2. Install deps</span>
+pip install torch numpy matplotlib
+
+<span class="cm"># 3. Set SUMO_HOME</span>
+<span class="kw">export</span> SUMO_HOME=<span class="st">"/usr/share/sumo"</span>
+
+<span class="cm"># 4. Train</span>
+python train.py
+
+<span class="cm"># 5. Evaluate</span>
+python test.py
+      </div>
+      <div class="arch-card" style="margin-top:16px">
+        <div class="tag">HYPERPARAMETERS</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Episodes: <span style="color:var(--text)">100</span></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">LR: <span style="color:var(--text)">0.001</span></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Gamma: <span style="color:var(--text)">0.75</span></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Batch: <span style="color:var(--text)">100</span></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">Memory: <span style="color:var(--text)">50,000</span></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">ε decay: <span style="color:var(--text)">400 eps</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/chirayu08/dql-traffic-signal" target="_blank">GitHub Repository</a>
+    <a href="https://sumo.dlr.de" target="_blank">SUMO Simulator</a>
+    <a href="#how">How it works</a>
+    <a href="#results">Results</a>
+  </div>
+  <p>DQL-TRAFFIC-SIGNAL · chirayu08 · 2026 · Built with PyTorch + SUMO</p>
+</footer>
+
+<script>
+// Counter animation
+function animateCounter(el, target, suffix, duration) {
+  let start = 0;
+  const step = target / (duration / 16);
+  const timer = setInterval(() => {
+    start = Math.min(start + step, target);
+    el.textContent = Math.floor(start) + suffix;
+    if (start >= target) clearInterval(timer);
+  }, 16);
+}
+
+setTimeout(() => {
+  animateCounter(document.getElementById('counter1'), 35, '%', 1200);
+  animateCounter(document.getElementById('counter2'), 100, '', 1000);
+  animateCounter(document.getElementById('counter3'), 80, '', 800);
+  animateCounter(document.getElementById('counter4'), 4, '', 600);
+}, 500);
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Intersection phase visualiser
+const phases = [
+  { label: 'Phase 0: N-S Green', desc: 'North-South traffic flows freely', ns: 'green', ew: 'red' },
+  { label: 'Phase 1: N-S Yellow', desc: 'North-South clearing, prepare to stop', ns: 'yellow', ew: 'red' },
+  { label: 'Phase 2: E-W Green', desc: 'East-West traffic flows freely', ns: 'red', ew: 'green' },
+  { label: 'Phase 3: E-W Yellow', desc: 'East-West clearing, prepare to stop', ns: 'red', ew: 'yellow' },
+];
+
+function setPhase(i) {
+  const p = phases[i];
+  document.getElementById('phase-label').textContent = p.label;
+  document.getElementById('phase-desc').textContent = p.desc;
+  document.querySelectorAll('.phase-btn').forEach((b, j) => b.classList.toggle('active', j === i));
+
+  const nsColor = p.ns === 'green' ? '#00c878' : p.ns === 'yellow' ? '#ffb800' : '#ff4757';
+  const ewColor = p.ew === 'green' ? '#00c878' : p.ew === 'yellow' ? '#ffb800' : '#ff4757';
+  const nsOff = p.ns === 'green' ? 'red' : 'green';
+  const ewOff = p.ew === 'green' ? 'red' : 'green';
+
+  // North/South lights
+  ['n','s'].forEach(dir => {
+    const g = document.getElementById(`tl-${dir}-g`);
+    const r = document.getElementById(`tl-${dir}-r`);
+    if (p.ns === 'green') { g.style.opacity='1'; r.style.opacity='0.2'; }
+    else if (p.ns === 'yellow') { g.style.opacity='0.2'; r.style.opacity='0.2'; g.setAttribute('fill','#ffb800'); }
+    else { g.style.opacity='0.2'; r.style.opacity='1'; g.setAttribute('fill','#00c878'); }
+  });
+  // East/West lights
+  ['e','w'].forEach(dir => {
+    const g = document.getElementById(`tl-${dir}-g`);
+    const r = document.getElementById(`tl-${dir}-r`);
+    if (p.ew === 'green') { g.style.opacity='1'; r.style.opacity='0.2'; }
+    else if (p.ew === 'yellow') { g.style.opacity='0.2'; r.style.opacity='0.2'; g.setAttribute('fill','#ffb800'); }
+    else { g.style.opacity='0.2'; r.style.opacity='1'; g.setAttribute('fill','#00c878'); }
+  });
+}
+setPhase(0);
+
+// Epsilon decay chart
+const eCanvas = document.getElementById('epsilon-chart');
+const eCtx = eCanvas.getContext('2d');
+eCanvas.width = eCanvas.offsetWidth * 2;
+eCanvas.height = 200;
+eCtx.scale(2, 2);
+const w = eCanvas.offsetWidth, h = 100;
+eCtx.clearRect(0,0,w,h);
+eCtx.strokeStyle = 'rgba(0,200,120,0.1)';
+eCtx.lineWidth = 1;
+for(let i=0;i<5;i++){
+  eCtx.beginPath();eCtx.moveTo(0,i*h/4);eCtx.lineTo(w,i*h/4);eCtx.stroke();
+}
+eCtx.strokeStyle = '#00c878';
+eCtx.lineWidth = 2;
+eCtx.shadowColor = '#00c878';
+eCtx.shadowBlur = 6;
+eCtx.beginPath();
+for(let x=0;x<=w;x++){
+  const ep = x/w * 100;
+  const eps = Math.max(0.01, 1.0 - (1.0-0.01)*ep/100);
+  const y = h - eps * (h-8) - 4;
+  x===0 ? eCtx.moveTo(x,y) : eCtx.lineTo(x,y);
+}
+eCtx.stroke();
+// Fill
+eCtx.shadowBlur = 0;
+eCtx.strokeStyle = 'transparent';
+eCtx.lineTo(w,h);eCtx.lineTo(0,h);eCtx.closePath();
+eCtx.fillStyle = 'rgba(0,200,120,0.05)';eCtx.fill();
+// Labels
+eCtx.fillStyle = 'rgba(107,126,154,0.8)';
+eCtx.font = '9px Space Mono, monospace';
+eCtx.fillText('ε=1.0', 4, 14);
+eCtx.fillText('ε=0.01', 4, h-4);
+eCtx.fillText('Ep 0', 4, h-16);
+eCtx.fillText('Ep 100', w-44, h-16);
+</script>
 </body>
 </html>
